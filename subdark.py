@@ -2553,6 +2553,131 @@ class SubDark:
         self.print_status("تم عرض البيانات الحقيقية المستخرجة بنجاح", "success")
         return True
     
+    def real_penetration_test(self):
+        """اختبار اختراق حقيقي للهدف"""
+        if not self.target:
+            self.print_status("يرجى إدخال الهدف أولاً", "error")
+            return False
+        
+        self.print_status(f"بدء اختبار الاختراق الحقيقي للهدف: {self.target}", "info")
+        
+        # قائمة أدوات الاختبار المتاحة
+        tools = {
+            '1': {'name': 'SQLMap - اختبار ثغرات SQL', 'command': f'sqlmap -u "{self.target}" --batch --random-agent'},
+            '2': {'name': 'Nmap - فحص المنافذ والخدمات', 'command': f'nmap -sV -sC -p- {self.target.replace("http://", "").replace("https://", "").split("/")[0]}'},
+            '3': {'name': 'Nikto - فحص الثغرات الويب', 'command': f'nikto -h {self.target}'},
+            '4': {'name': 'Dirb - فحص الدلائل والملفات', 'command': f'dirb {self.target} /usr/share/wordlists/dirb/common.txt'},
+            '5': {'name': 'WhatWeb - تحديد تقنيات الويب', 'command': f'whatweb {self.target}'},
+            '6': {'name': 'Wpscan - فحص ووردبريس', 'command': f'wpscan --url {self.target} --enumerate ap,at,cb,dbe' if 'wordpress' in self.target.lower() or 'wp' in self.target.lower() else None},
+            '7': {'name': 'Hydra - هجوم كلمات المرور', 'command': f'hydra -L /usr/share/wordlists/metasploit/unix_users.txt -P /usr/share/wordlists/metasploit/unix_passwords.txt {self.target.replace("http://", "").replace("https://", "").split("/")[0]} ssh'},
+            '8': {'name': 'Metasploit - استغلال متقدم', 'command': 'msfconsole -q -x "search {target}; exit"'.format(target=self.target)}
+        }
+        
+        print(f"\n{Colors.RED}{Colors.BOLD}═══════════════════════════════════════════════════════════════{Colors.END}")
+        print(f"{Colors.RED}{Colors.BOLD}                    اختبار اختراق حقيقي للهدف{Colors.END}")
+        print(f"{Colors.RED}{Colors.BOLD}═══════════════════════════════════════════════════════════════{Colors.END}")
+        print(f"{Colors.CYAN}الهدف: {Colors.YELLOW}{self.target}{Colors.END}")
+        print(f"{Colors.CYAN}وقت البدء: {Colors.YELLOW}{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}{Colors.END}")
+        print(f"\n{Colors.BLUE}{Colors.BOLD}أدوات الاختبار المتاحة:{Colors.END}")
+        
+        for key, tool in tools.items():
+            if tool['command']:  # فقط أدوات متاحة
+                print(f"{Colors.CYAN}{key}.{Colors.END} {Colors.YELLOW}{tool['name']}{Colors.END}")
+        
+        print(f"{Colors.CYAN}9.{Colors.END} {Colors.YELLOW}تشغيل جميع الأدوات المتاحة{Colors.END}")
+        print(f"{Colors.CYAN}0.{Colors.END} {Colors.YELLOW}العودة للقائمة الرئيسية{Colors.END}")
+        
+        choice = input(f"\n{Colors.YELLOW}اختر أداة الاختبار: {Colors.END}")
+        
+        if choice == "0":
+            return True
+        
+        elif choice == "9":
+            # تشغيل جميع الأدوات المتاحة
+            self.print_status("بدء اختبار الاختراق الشامل بجميع الأدوات", "info")
+            
+            for key, tool in tools.items():
+                if tool['command']:
+                    print(f"\n{Colors.BLUE}{Colors.BOLD}تشغيل: {tool['name']}{Colors.END}")
+                    print(f"{Colors.CYAN}الأمر: {Colors.YELLOW}{tool['command']}{Colors.END}")
+                    
+                    try:
+                        result = subprocess.run(tool['command'], shell=True, capture_output=True, text=True, timeout=300)
+                        
+                        if result.stdout:
+                            print(f"\n{Colors.GREEN}نتائج {tool['name']}:{Colors.END}")
+                            # عرض أول 50 سطر من النتائج
+                            lines = result.stdout.strip().split('\n')[:50]
+                            for line in lines:
+                                print(f"{Colors.CYAN}| {line}{Colors.END}")
+                            
+                            if len(result.stdout.strip().split('\n')) > 50:
+                                print(f"{Colors.YELLOW}... و{len(result.stdout.strip().split('\n')) - 50} سطر إضافي{Colors.END}")
+                        
+                        if result.stderr and 'WARNING' not in result.stderr.upper():
+                            print(f"\n{Colors.RED}أخطاء: {result.stderr[:200]}...{Colors.END}")
+                        
+                        if result.returncode == 0:
+                            self.print_status(f"اكتمل {tool['name']} بنجاح", "success")
+                        else:
+                            self.print_status(f"{tool['name']} انتهى مع أخطاء", "warning")
+                    
+                    except subprocess.TimeoutExpired:
+                        self.print_status(f"{tool['name']} تجاوز وقت التنفيذ (5 دقائق)", "error")
+                    except Exception as e:
+                        self.print_status(f"فشل تنفيذ {tool['name']}: {str(e)}", "error")
+                    
+                    # تأخير بين الأدوات لتجنب الإفر
+                    time.sleep(2)
+            
+            self.print_status("اكتمل اختبار الاختراق الشامل", "success")
+        
+        elif choice in tools and tools[choice]['command']:
+            selected_tool = tools[choice]
+            print(f"\n{Colors.BLUE}{Colors.BOLD}تشغيل: {selected_tool['name']}{Colors.END}")
+            print(f"{Colors.CYAN}الأمر: {Colors.YELLOW}{selected_tool['command']}{Colors.END}")
+            
+            try:
+                result = subprocess.run(selected_tool['command'], shell=True, capture_output=True, text=True, timeout=600)
+                
+                if result.stdout:
+                    print(f"\n{Colors.GREEN}النتائج:{Colors.END}")
+                    # عرض النتائج مع تلوين
+                    lines = result.stdout.strip().split('\n')
+                    for line in lines:
+                        if any(word in line.lower() for word in ['vulnerable', 'vulnerability', 'exploit', 'critical', 'high risk']):
+                            print(f"{Colors.RED}| {line}{Colors.END}")
+                        elif any(word in line.lower() for word in ['warning', 'medium', 'low']):
+                            print(f"{Colors.YELLOW}| {line}{Colors.END}")
+                        elif any(word in line.lower() for word in ['found', 'discovered', 'success']):
+                            print(f"{Colors.GREEN}| {line}{Colors.END}")
+                        else:
+                            print(f"{Colors.CYAN}| {line}{Colors.END}")
+                
+                if result.stderr:
+                    print(f"\n{Colors.RED}أخطاء: {result.stderr[:500]}...{Colors.END}")
+                
+                if result.returncode == 0:
+                    self.print_status(f"اكتمل {selected_tool['name']} بنجاح", "success")
+                else:
+                    self.print_status(f"{selected_tool['name']} انتهى مع أخطاء", "warning")
+            
+            except subprocess.TimeoutExpired:
+                self.print_status(f"{selected_tool['name']} تجاوز وقت التنفيذ (10 دقائق)", "error")
+            except Exception as e:
+                self.print_status(f"فشل تنفيذ {selected_tool['name']}: {str(e)}", "error")
+        
+        else:
+            self.print_status("خيار غير صالح أو أداة غير متاحة", "error")
+        
+        print(f"\n{Colors.RED}{Colors.BOLD}⚠️ تحذيرات أمنية:{Colors.END}")
+        print(f"{Colors.RED}• تم تنفيذ اختبار اختراق حقيقي على {self.target}{Colors.END}")
+        print(f"{Colors.RED}• يجب الحصول على إذن صريح قبل تنفيذ مثل هذه الاختبارات{Colors.END}")
+        print(f"{Colors.YELLOW}• يوصى بمراجعة النتائج وتقييم المخاطر المكتشفة{Colors.END}")
+        print(f"{Colors.YELLOW}• يجب إخطار أصحاب النظام بالثغرات المكتشفة فوراً{Colors.END}")
+        
+        return True
+    
     def interactive_menu(self):
         """القائمة التفاعلية"""
         while True:
@@ -2574,6 +2699,7 @@ class SubDark:
             print(f"{Colors.CYAN}12.{Colors.END} عرض الروابط المخفية والحساسة الحقيقية")
             print(f"{Colors.CYAN}13.{Colors.END} إثبات الضرر الحقيقي للثغرات على الهدف")
             print(f"{Colors.CYAN}14.{Colors.END} عرض البيانات الحقيقية المستخرجة")
+            print(f"{Colors.CYAN}15.{Colors.END} اختبار اختراق حقيقي للهدف")
             print(f"{Colors.CYAN}0.{Colors.END} الخروج")
             
             choice = input(f"\n{Colors.YELLOW}اختر خياراً: {Colors.END}")
@@ -2644,6 +2770,10 @@ class SubDark:
             
             elif choice == "14":
                 self.display_real_extracted_data()
+                input(f"\n{Colors.GREEN}اضغط Enter للمتابعة...{Colors.END}")
+            
+            elif choice == "15":
+                self.real_penetration_test()
                 input(f"\n{Colors.GREEN}اضغط Enter للمتابعة...{Colors.END}")
             
             elif choice == "0":
